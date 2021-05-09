@@ -240,6 +240,10 @@ class UserProfileChangeAPIView(APIView):
     serializer_class = ProfileSerializer
     queryset = Profile.objects.all()
 
+<<<<<<< HEAD
+=======
+    
+>>>>>>> 7a297526c51e34a17506135f5e1afbd27637077e
     def get(self,request,username):
         
         user = User.objects.get(username=username)
