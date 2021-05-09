@@ -235,8 +235,7 @@ class UserProfileChangeAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated,UserIsOwnerOrReadonly]
     serializer_class = ProfileSerializer
 
-    @method_decorator(cache_page(60*60*2))
-    @method_decorator(vary_on_cookie)
+    
     def get(self,request,username):
         user = User.objects.get(username=username)
         profile = Profile.objects.get(user=user)
