@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from .models import Category,Question,Answer
 from .permissions import IsAdminUserOrReadOnly,IsOwnerOrReadOnly,UserIsOwnerOrReadonly
 from rest_framework import permissions,viewsets,status,generics,mixins
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError,NotFound
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
@@ -17,6 +17,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_cookie
+
 
 
 
@@ -37,6 +38,7 @@ class AddCategroyAPIView(APIView):
             },status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors)    
+
     @method_decorator(cache_page(60*60*2))
     @method_decorator(vary_on_cookie)
     def get(self,request):
@@ -44,6 +46,16 @@ class AddCategroyAPIView(APIView):
         serializer = CategorySerializer(categories,many=True,context={'request':request})
         return Response(serializer.data)
 
+class CategoryDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CategorySerializer
+    
+    @method_decorator(cache_page(60*60*2))
+    @method_decorator(vary_on_cookie)
+    def get(self,request,cat_slug):
+        category = Category.objects.get(slug=cat_slug)
+        serializer = CategorySerializer(category,context={'request':request})
+        return Response(serializer.data)
 
 
 
@@ -131,13 +143,7 @@ class AnswerAPIView(generics.ListCreateAPIView):
         )    
         answer_created.delay(answer.id)
 
-    @method_decorator(cache_page(60*60*2))
-    @method_decorator(vary_on_cookie)
-    def list(self,request,*args,**kwargs):
-        super().list(request,*args,**kwargs)    
-
         
-
 class AnswerRUDAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = AnswerSerializer
     permission_classes = [permissions.IsAuthenticated,IsOwnerOrReadOnly]
@@ -148,8 +154,6 @@ class AnswerRUDAPIView(generics.RetrieveUpdateDestroyAPIView):
         queryset = answer.filter(question__slug=self.kwargs['q_slug'])
         return queryset
 
-    def retrieve(self,request,*args,**kwargs):
-        super().retrieve(request,*args,**kwargs)    
 
 class QuestionLikeAPIView(APIView):
     serializer_class = QuestionLikeSerializer
@@ -234,14 +238,15 @@ class QuestionByAuthorAPIView(APIView):
 class UserProfileChangeAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated,UserIsOwnerOrReadonly]
     serializer_class = ProfileSerializer
+    queryset = Profile.objects.all()
 
-    @method_decorator(cache_page(60*60*2))
-    @method_decorator(vary_on_cookie)
     def get(self,request,username):
+        
         user = User.objects.get(username=username)
         profile = Profile.objects.get(user=user)
         serializer = ProfileSerializer(profile)
         return Response(serializer.data)
+          
         
     def put(self,request,username):
         user = User.objects.get(username=username)

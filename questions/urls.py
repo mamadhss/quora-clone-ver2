@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path('category/',views.AddCategroyAPIView.as_view()),
+    path('category/<slug:cat_slug>/',views.CategoryDetailView.as_view()),
     path('questions/',views.QuestionAPIView.as_view()),
     path('questions/<slug:cat_slug>/<slug:q_slug>/',views.QuestionDetailAPIView.as_view()),
     path('questions/<slug:cat_slug>/<slug:q_slug>/answers/',views.AnswerAPIView.as_view()),
