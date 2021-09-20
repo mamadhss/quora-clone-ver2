@@ -1,10 +1,8 @@
-import re
 from django.db.models.query_utils import select_related_descend
 from django.http.request import validate_host
 from django.shortcuts import render
-from rest_framework import response
 from rest_framework.views import APIView
-from .serializers import CategorySerializer,QuestionSerializer,AnswerSerializer,QuestionLikeSerializer,AnswerLikeSerializer,QuestionPostSerializer
+from .serializers import CategorySerializer,QuestionSerializer,AnswerSerializer,QuestionLikeSerializer,AnswerLikeSerializer
 from rest_framework.response import Response
 from .models import Category, QLike,Question,Answer
 from .permissions import IsAdminUserOrReadOnly,IsOwnerOrReadOnly,UserIsOwnerOrReadonly
@@ -15,7 +13,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from users.serializers import ProfileSerializer,ChangePasswordSerializer
 from users.models import Profile
-from django.db.models import Q, fields
+from django.db.models import Q
 from .task import question_created,answer_created,question_liked
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
@@ -65,12 +63,13 @@ class CategoryDetailView(APIView):
 
 
 class QuestionAPIView(APIView):
+    serializer_class = QuestionSerializer
     permission_classes = [permissions.IsAuthenticated]
     queryset = Question.objects.all()
 
 
     def post(self,request):
-        serializer = QuestionPostSerializer(data=request.data,context={'request':request})
+        serializer = QuestionSerializer(data=request.data,context={'request':request})
         if serializer.is_valid():
             question = serializer.save(
                 author=self.request.user
@@ -81,20 +80,19 @@ class QuestionAPIView(APIView):
                 'data':serializer.data,
                 'msg':'question created',
             },status=status.HTTP_201_CREATED)
-        return Response(serializer.errors)    
 
-    #@method_decorator(cache_page(60*60*2))
-    #@method_decorator(vary_on_cookie)
+    @method_decorator(cache_page(60*60*2))
+    @method_decorator(vary_on_cookie)
     def get(self,request):
-        # s = request.GET.get('s')
-        # sort = request.GET.get('sort')
-        questions = Question.objects.all().order_by('-created_at')
-        # if s:
-        #     questions = questions.filter(Q(content__icontains=s) | Q(author__username=s))
-        # if sort == 'asc':
-        #     questions = questions.order_by('created_at')
-        # elif sort == 'desc' :
-        #     questions = questions.order_by('-created_at')
+        s = request.GET.get('s')
+        sort = request.GET.get('sort')
+        questions = Question.objects.all()
+        if s:
+            questions = questions.filter(Q(content__icontains=s) | Q(author__username=s))
+        if sort == 'asc':
+            questions = questions.order_by('created_at')
+        elif sort == 'desc' :
+            questions = questions.order_by('-created_at')
 
         serializer = QuestionSerializer(questions,many=True,context={'request':request})
         return Response(serializer.data)
@@ -103,8 +101,8 @@ class QuestionDetailAPIView(APIView):
     serializer_class = QuestionSerializer
     permission_classes = [permissions.IsAuthenticated,IsOwnerOrReadOnly]
 
-    #@method_decorator(cache_page(60*60*2))
-    #@method_decorator(vary_on_cookie)
+    @method_decorator(cache_page(60*60*2))
+    @method_decorator(vary_on_cookie)
     def get(self,request,cat_slug,q_slug):
         question = Question.objects.filter(category__slug=cat_slug).get(slug=q_slug)
         serializer = QuestionSerializer(question,context={'request':request})
@@ -143,12 +141,8 @@ class AnswerAPIView(generics.ListCreateAPIView):
     def perform_create(self,serializer):
         question = Question.objects.filter(category__slug=self.kwargs['cat_slug']).get(slug=self.kwargs['q_slug'])
         current_user = self.request.user
-        # if current_user.pk is question.author.pk:
-        #     raise ValidationError('you cant answer your question!')
-
-        # if Answer.objects.filter(question=question,author=current_user).exists():
-        #     raise ValidationError('you already answered this question!')    
-            
+        if current_user.pk is question.author.pk:
+            raise ValidationError('you cant answer your question!')
         answer = serializer.save(
             author=current_user,
             question = question
@@ -181,8 +175,8 @@ class QuestionLikeAPIView(APIView):
         # if QLike.objects.filter(question=question,liker=self.request.user).exists():
         #     raise ValidationError('You Already Liked this Question')
 
-        # if current_user.pk is question.author.pk:
-        #     raise ValidationError('you cant like your own question') 
+        if current_user.pk is question.author.pk:
+            raise ValidationError('you cant like your own question') 
     
         serializer = QuestionLikeSerializer(data=request.data)
         if serializer.is_valid():
@@ -283,9 +277,6 @@ class UserProfileChangeAPIView(APIView):
         return Response(serializer.errors)    
 
 
-
-
-
     
 class PasswordChangeAPIViwe(APIView):
     serializer_class = ChangePasswordSerializer
@@ -305,3 +296,4 @@ class PasswordChangeAPIViwe(APIView):
 
 
 
+                                                        
