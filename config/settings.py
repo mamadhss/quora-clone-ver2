@@ -30,7 +30,7 @@ SECRET_KEY = '*!d6q!(sg^%gb=5a6fv6x^13^y2^-yym-&&7f6wcachhcufyqj'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['q-a-website.herokuapp.com','localhost','127.0.0.1']
 
 
 # Application definition
@@ -145,6 +145,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR,'staticfiles')
 AUTH_USER_MODEL = 'users.UserAccount'
 
 
